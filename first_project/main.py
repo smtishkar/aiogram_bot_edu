@@ -1,6 +1,10 @@
+import random
+
 from aiogram import Bot, Dispatcher, executor, types
-from keyboards import kb
+from keyboards import kb, kb_photo
 from config import TOKEN_API
+from aiogram.dispatcher.filters import Text
+from random import choice
 
 bot = Bot(token=TOKEN_API)
 dp = Dispatcher(bot = bot)
@@ -8,12 +12,35 @@ HELP_COMMAND = """
 <b>/help</b> - <em>список команд</em>
 <b>/start</b> - <em>старт бота</em>
 <b>/description</b> - <em>описание бота</em>
-<b>/Random_photo</b> - <em>отправка случайное фото</em>"""
+<b>/Random photo</b> - <em>отправка случайное фото</em>"""
 
+
+arr_photos = ["https://yandex.ru/images/search?pos=40&img_url=https%3A%2F%2Fsun9-9.userapi.com%2Fimpg%2FU8DJ2JiZtnRCMyufsqGVeaCoEnrI3zt6OwfOBA%2F4XbMeBkLWXk.jpg%3Fsize%3D800x527%26quality%3D96%26sign%3D1c2c9c269893d023bee6aba85787d9a4%26c_uniq_tag%3DlxQMy7HkDGAKV4NrWRpkdoXesyGRinlPJDqMHcxpG6Q%26type%3Dalbum&text=коты+смешные&rpt=simage&lr=213",
+              "https://yandex.ru/images/search?p=1&text=коты+смешные&pos=34&rpt=simage&img_url=https%3A%2F%2Fimg1.goodfon.ru%2Foriginal%2F5184x3456%2Fb%2F72%2Fskottish-fold-morda-shapka.jpg&lr=213",
+              "https://yandex.ru/images/search?p=2&text=коты+смешные&pos=26&rpt=simage&img_url=https%3A%2F%2Fkrasivosti.pro%2Fuploads%2Fposts%2F2021-03%2F1616466037_28-p-tri-kota-i-koshechka-foto-koshka-34.jpg&lr=213"]
 
 async def on_startup(_):
     print("Я запустился")
 
+
+@dp.message_handler(Text(equals='Random photo'))
+async def open_kb_photo (message: types.Message):
+    await message.answer(text='чтобы отправить рандомную фотографию нажми кнопку Рандом',
+                         reply_markup=kb_photo)
+    await message.delete()
+
+
+@dp.message_handler(Text(equals='Рандом'))
+async def send_random_photo(message: types.Message):
+    await bot.send_photo(chat_id=message.chat.id,
+                         photo=random.choice(arr_photos))
+
+
+@dp.message_handler(Text(equals='Главное меню'))
+async def open_kb (message: types.Message):
+    await message.answer(text='Добро пожаловать в главное меню',
+                         reply_markup=kb)
+    await message.delete()
 
 @dp.message_handler(commands=['start'])
 async def cmd_start (message: types.Message):
@@ -32,8 +59,8 @@ async def cmd_description (message: types.Message):
     await message.answer(text='Наш бот умеет отправлять рандомные фотки')
     await message.delete()
 
-@dp.message_handler(commands=['Random_photo'])
-async def cmd_photot (message: types.Message):
+@dp.message_handler(commands=['Random photo'])
+async def cmd_photo (message: types.Message):
     await message.answer(text='Наш бот умеет отправлять рандомные фотки')
     await bot.send_sticker(chat_id=message.chat.id,
                            sticker="CAACAgIAAxkBAAEI1_xkUqSQEN8_C06GEOsE3P-wSPimdQAC8RIAAgU-sEu8tCkctsJQBy8E")
