@@ -4,6 +4,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from keyboards import kb, kb_photo, ikb
 from config import TOKEN_API
 from aiogram.dispatcher.filters import Text
+from aiogram.types import ReplyKeyboardRemove               #Чтобы убирать клваатуру после команды
 from random import choice
 
 bot = Bot(token=TOKEN_API)
@@ -20,13 +21,16 @@ arr_photos = ["https://yandex.ru/images/search?pos=40&img_url=https%3A%2F%2Fsun9
               "https://yandex.ru/images/search?p=2&text=коты+смешные&pos=26&rpt=simage&img_url=https%3A%2F%2Fkrasivosti.pro%2Fuploads%2Fposts%2F2021-03%2F1616466037_28-p-tri-kota-i-koshechka-foto-koshka-34.jpg&lr=213"]
 
 photos = dict(zip(arr_photos, ['Кота-кактус', 'Дай пять', 'Странное фото']))             #zip - чтобы сшить два массива в одном словаре
+random_photo = random.choice(list(photos.keys()))
 
+flag = False
 
 async def on_startup(_):
     print("Я запустился")
 
 
 async def send_random(message: types.Message):
+    global random_photo
     random_photo = random.choice(list(photos.keys()))
     await bot.send_photo(chat_id=message.chat.id,
                          photo=random_photo,
@@ -36,15 +40,9 @@ async def send_random(message: types.Message):
 
 @dp.message_handler(Text(equals='Random photo'))
 async def open_kb_photo (message: types.Message):
-    await message.answer(text='чтобы отправить рандомную фотографию нажми кнопку Рандом',
-                         reply_markup=kb_photo)
-    await message.delete()
-
-
-@dp.message_handler(Text(equals='Рандом'))
-async def send_random_photo(message: types.Message):
+    await message.answer(text="Рандомная фотка!",reply_markup=ReplyKeyboardRemove())
     await send_random(message)
-
+    await message.delete()
 
 
 @dp.message_handler(Text(equals='Главное меню'))
@@ -70,6 +68,13 @@ async def cmd_description (message: types.Message):
     await message.answer(text='Наш бот умеет отправлять рандомные фотки')
     await message.delete()
 
+
+@dp.message_handler(commands='location')
+async def cmd_location(message: types.Message):
+    await bot.send_location(chat_id=message.chat.id,
+                            latitude=random.randint(0,50),
+                            longitude=random.randint(0,50))
+
 @dp.message_handler(commands=['Random photo'])
 async def cmd_photo (message: types.Message):
     await message.answer(text='Наш бот умеет отправлять рандомные фотки')
@@ -80,14 +85,30 @@ async def cmd_photo (message: types.Message):
 
 @dp.callback_query_handler()
 async def callback_random_photo(callback: types.CallbackQuery):
+    global random_photo             #! Недопустимо использование глобальных переменных
+    global flag
     if callback.data == 'like':
-        await callback.answer('Вам понравилась фотка')
+        if not flag:
+            await callback.answer('Вам понравилась фотка')
+            flag = not flag
+        else:
+            await callback.answer('Вы уже лайкали')
         # await callback.message.answer('Вам понравилась фотка')
     elif callback.data == 'dislike':
         await callback.answer('Вам не понравилась фотка')
         # await callback.message.answer('Вам не понравилась фотка')
+    elif callback.data == 'main':
+        await callback.message.answer(text='Добро пожаловать в главное мению',
+                                      reply_markup=kb)
+        await callback.message.delete()
+        await callback.answer()
     else:
-        await send_random(message=callback.message)
+        # random_photo = random.choice(list(photos.keys()))           # Так кнопка отрабатывает один раз, а потом исключения, поэтому надо получить новый файл
+        random_photo = random.choice(list(filter(lambda x: x != random_photo, list(photos.keys()))))
+        await callback.message.edit_media(types.InputMedia(media=random_photo,
+                                                           type='photo',
+                                                           caption= photos[random_photo]),
+                                                           reply_markup=ikb)
         await callback.answer()
 
 
